@@ -66,8 +66,8 @@ h2 small{color:var(--mute);font-weight:400;font-size:12px;margin-left:6px}
   <div class="row"><button class="main" id="save">測試並儲存</button><button id="back">返回</button></div>
   <div id="msg"></div>
   <h2>這台設備</h2>
-  <div class="row"><button id="offline">全部下載，離線也能看</button><button id="wipe">清除這台設備的資料</button></div>
-  <div id="omsg"></div>
+  <p>打開過的頁面會存在這台設備，離線時也能再看。</p>
+  <div class="row"><button id="wipe">清除這台設備的資料</button></div>
 </section>
 <iframe id="view" hidden sandbox="allow-scripts allow-modals" title="內容"></iframe>
 <div id="sync" hidden></div>
@@ -246,15 +246,6 @@ function detect(tok){
 }
 $('#back').onclick=function(){location.hash=''};
 $('#gear').onclick=function(){location.hash='#setup'};
-$('#offline').onclick=function(){
-  var b=this,om=$('#omsg');if(!ready())return;b.disabled=true;om.textContent='讀取目錄…';
-  (IDX?Promise.resolve({t:1}):loadIndex().then(function(o){if(o.t){IDX=JSON.parse(o.t);IDX.groups.forEach(function(g){g.items.forEach(function(it){BY[it.id]=it})})}return o}))
-  .then(function(){
-    var ids=Object.keys(BY),i=0,ok=0,bad=0;
-    function next(){if(i>=ids.length)return Promise.resolve();var id=ids[i++];return loadNote(id).then(function(h){h?ok++:bad++;om.textContent='已下載 '+ok+'／'+ids.length+(bad?'，失敗 '+bad:'');return next()})}
-    return Promise.all([next(),next(),next(),next()]);
-  }).then(function(){b.disabled=false;om.textContent+='，完成'});
-};
 $('#wipe').onclick=function(){
   var unsynced=LS.keys().filter(function(k){var l=k.indexOf('pn-m-')===0&&getLocal(k.slice(5));return l&&!l.s}).length;
   if(!confirm((unsynced?'有 '+unsynced+' 頁的標記還沒同步，會一起刪掉。\n':'')+'清除這台設備上的 token、repo 設定和下載的內容？'))return;
