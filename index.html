@@ -57,9 +57,7 @@ h2 small{color:var(--mute);font-weight:400;font-size:12px;margin-left:6px}
 </main>
 <section id="setup" hidden>
   <h2>設定</h2>
-  <p>內容存在你自己的私人 GitHub repo，這個頁面只負責顯示。token 和 repo 名稱只存在這台設備的瀏覽器，請只在自己的設備上輸入。</p>
-  <label for="repo">資料 repo（可留空）</label>
-  <input id="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="留空會自動找；或填 owner/name">
+  <p>內容存在你自己的私人 GitHub repo，這個頁面只負責顯示。token 只存在這台設備的瀏覽器，請只在自己的設備上輸入；放內容的 repo 會用 token 自動找到。</p>
   <label for="tok">GitHub token</label>
   <input id="tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
   <p>建議用 fine-grained token：只選這一個 repo，Contents 權限 Read and write（標記要寫回），設到期日。</p>
@@ -211,18 +209,17 @@ addEventListener('message',function(e){
 /* 設定 */
 function setup(){
   CUR=null;setView(null,false);$('#bar').hidden=false;$('#home').hidden=true;$('#setup').hidden=false;
-  var c=cfg();$('#repo').value=c.repo;$('#tok').value=c.token?'••••••••':'';$('#msg').textContent='';$('#back').hidden=!ready();
+  var c=cfg();$('#tok').value=c.token?'••••••••':'';$('#msg').textContent='';$('#back').hidden=!ready();
 }
 $('#tok').addEventListener('focus',function(){if(this.value==='••••••••')this.value=''});
 $('#save').onclick=function(){
-  var repo=$('#repo').value.trim(),tok=$('#tok').value.trim(),msg=$('#msg');
+  var repo,tok=$('#tok').value.trim(),msg=$('#msg');
   if(tok==='••••••••'||!tok)tok=cfg().token;
-  if(repo&&!RE.test(repo)){msg.textContent='repo 要寫成 owner/name，或留空自動找';return}
   if(!tok){msg.textContent='請輸入 token';return}
-  msg.textContent=repo?'測試中…':'尋找資料 repo…';
-  (repo?Promise.resolve(repo):detect(tok)).then(function(found){
-    if(!found){msg.textContent='找不到放內容的 repo：請確認 token 有選到它，或直接填 owner/name';return}
-    repo=found;$('#repo').value=repo;
+  msg.textContent='尋找內容…';
+  detect(tok).then(function(found){
+    if(!found){msg.textContent='找不到放內容的 repo：請確認 token 的 Repository access 有選到它';return}
+    repo=found;
     return api('',{},null,{repo:repo,token:tok}).then(function(r){
     if(!r.ok){msg.textContent=errText(r.status);return}
     return r.json().then(function(j){
