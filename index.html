@@ -58,8 +58,8 @@ h2 small{color:var(--mute);font-weight:400;font-size:12px;margin-left:6px}
 <section id="setup" hidden>
   <h2>設定</h2>
   <p>內容存在你自己的私人 GitHub repo，這個頁面只負責顯示。token 和 repo 名稱只存在這台設備的瀏覽器，請只在自己的設備上輸入。</p>
-  <label for="repo">資料 repo（owner/name）</label>
-  <input id="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/name">
+  <label for="repo">資料 repo（可留空）</label>
+  <input id="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="留空會自動找；或填 owner/name">
   <label for="tok">GitHub token</label>
   <input id="tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
   <p>建議用 fine-grained token：只選這一個 repo，Contents 權限 Read and write（標記要寫回），設到期日。</p>
@@ -217,19 +217,33 @@ $('#tok').addEventListener('focus',function(){if(this.value==='•••••�
 $('#save').onclick=function(){
   var repo=$('#repo').value.trim(),tok=$('#tok').value.trim(),msg=$('#msg');
   if(tok==='••••••••'||!tok)tok=cfg().token;
-  if(!RE.test(repo)){msg.textContent='repo 要寫成 owner/name';return}
+  if(repo&&!RE.test(repo)){msg.textContent='repo 要寫成 owner/name，或留空自動找';return}
   if(!tok){msg.textContent='請輸入 token';return}
-  msg.textContent='測試中…';
-  api('',{},null,{repo:repo,token:tok}).then(function(r){
+  msg.textContent=repo?'測試中…':'尋找資料 repo…';
+  (repo?Promise.resolve(repo):detect(tok)).then(function(found){
+    if(!found){msg.textContent='找不到放內容的 repo：請確認 token 有選到它，或直接填 owner/name';return}
+    repo=found;$('#repo').value=repo;
+    return api('',{},null,{repo:repo,token:tok}).then(function(r){
     if(!r.ok){msg.textContent=errText(r.status);return}
     return r.json().then(function(j){
       LS.set('pn-repo',repo);LS.set('pn-token',tok);IDX=null;
       var w=j.permissions&&j.permissions.push;
       msg.textContent=(j.private?'':'注意：這個 repo 不是私人的。')+(w?'可以讀寫，標記會同步。':'只能讀，標記不會同步（token 需要 Contents 寫入權限）。');
-      setTimeout(function(){location.hash=''},w?600:2500);
+      setTimeout(function(){location.hash=''},w?900:2500);
     });
-  }).catch(function(){msg.textContent='連不上 GitHub，請確認網路'});
+  })}).catch(function(e){msg.textContent=typeof e==='number'?errText(e):'連不上 GitHub，請確認網路'});
 };
+/* 用 token 列出它能讀的私人 repo，找出有 notes/index.json 的那一個 */
+function detect(tok){
+  var h={'Accept':'application/vnd.github+json','Authorization':'Bearer '+tok,'X-GitHub-Api-Version':'2022-11-28'};
+  return fetch('https://api.github.com/user/repos?per_page=100&sort=pushed',{headers:h,cache:'no-store',referrerPolicy:'no-referrer'})
+    .then(function(r){if(!r.ok)throw r.status;return r.json()}).then(function(list){
+      var cands=(list||[]).filter(function(x){return x&&x.private&&RE.test(x.full_name||'')}).map(function(x){return x.full_name}).slice(0,10);
+      var i=0;function next(){if(i>=cands.length)return null;var full=cands[i++];
+        return api('/contents/notes/index.json',{method:'GET'},null,{repo:full,token:tok}).then(function(r){return r.ok?full:next()}).catch(next)}
+      return next();
+    }).catch(function(e){if(e===401)throw e;return null});
+}
 $('#back').onclick=function(){location.hash=''};
 $('#gear').onclick=function(){location.hash='#setup'};
 $('#offline').onclick=function(){
