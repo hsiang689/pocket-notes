@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>筆記</title>
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151618" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="筆記">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1f;--mute:#6b6b70;--line:#e4e2dc;--acc:#2f5fb3;--accbg:#e9f0fb;--ok:#1f7a3a;--bad:#b3261e;--dot:#c99700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151618;--card:#1e2023;--ink:#e8e8e6;--mute:#9a9aa0;--line:#2e3034;--acc:#7fa8f0;--accbg:#22314a;--ok:#6fcf8f;--bad:#f28b82;--dot:#d4b13a}}
+:root[data-theme="dark"]{--bg:#151618;--card:#1e2023;--ink:#e8e8e6;--mute:#9a9aa0;--line:#2e3034;--acc:#7fa8f0;--accbg:#22314a;--ok:#6fcf8f;--bad:#f28b82;--dot:#d4b13a}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC","Noto Sans CJK TC",sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:8px 16px;padding-top:max(8px,env(safe-area-inset-top));display:flex;gap:8px;align-items:center}
+header h1{font-size:17px;margin:0 6px 0 0;white-space:nowrap}
+#q{flex:1;min-width:0;font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--acc);border-radius:8px;padding:5px 12px;cursor:pointer;white-space:nowrap}
+button.main{background:var(--acc);border-color:var(--acc);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+main{max-width:1100px;margin:0 auto;padding:12px 16px 60px;padding-bottom:max(60px,env(safe-area-inset-bottom))}
+#status{color:var(--mute);font-size:13px;min-height:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#status .err{color:var(--bad)}
+h2{font-size:16px;margin:22px 0 8px}
+h2 small{color:var(--mute);font-weight:400;font-size:12px;margin-left:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.it{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--ink);text-decoration:none}
+.it:hover{background:var(--accbg)}
+.it b{min-width:34px}
+.it span{flex:1;display:flex;flex-direction:column;line-height:1.35;min-width:0}
+.it small{color:var(--mute)}
+.it i{font-style:normal;font-size:12px;color:var(--dot)}
+#setup{max-width:560px;margin:0 auto;padding:16px}
+#setup label{display:block;margin:14px 0 4px;font-weight:600}
+#setup input{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+#setup p{color:var(--mute);font-size:13px;margin:6px 0}
+#setup .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+#msg{margin-top:12px;font-size:14px}
+#view{position:fixed;inset:0;width:100%;height:100%;border:0;background:var(--bg);z-index:10}
+#sync{position:fixed;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:20;font-size:12px;background:var(--card);color:var(--mute);border:1px solid var(--line);border-radius:12px;padding:2px 10px;opacity:.9;pointer-events:none}
+</style>
+</head>
+<body>
+<header id="bar"><h1>筆記</h1><input id="q" type="search" placeholder="搜尋" autocomplete="off"><button id="gear" title="設定">設定</button></header>
+<main id="home">
+  <div id="status"></div>
+  <div id="list"></div>
+</main>
+<section id="setup" hidden>
+  <h2>設定</h2>
+  <p>內容存在你自己的私人 GitHub repo，這個頁面只負責顯示。token 和 repo 名稱只存在這台設備的瀏覽器，請只在自己的設備上輸入。</p>
+  <label for="repo">資料 repo（owner/name）</label>
+  <input id="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/name">
+  <label for="tok">GitHub token</label>
+  <input id="tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
+  <p>建議用 fine-grained token：只選這一個 repo，Contents 權限 Read and write（標記要寫回），設到期日。</p>
+  <div class="row"><button class="main" id="save">測試並儲存</button><button id="back">返回</button></div>
+  <div id="msg"></div>
+  <h2>這台設備</h2>
+  <div class="row"><button id="offline">全部下載，離線也能看</button><button id="wipe">清除這台設備的資料</button></div>
+  <div id="omsg"></div>
+</section>
+<iframe id="view" hidden sandbox="allow-scripts allow-modals" title="內容"></iframe>
+<div id="sync" hidden></div>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set:function(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}},
+  keys:function(){try{return Object.keys(localStorage)}catch(e){return []}}};
+var RE=/^[\w.-]+\/[\w.-]+$/;
+function cfg(){return {repo:LS.get('pn-repo')||'',token:LS.get('pn-token')||''}}
+function ready(){var c=cfg();return RE.test(c.repo)&&!!c.token}
+function api(path,opt,accept,c){opt=opt||{};c=c||cfg();
+  var h={'Accept':accept||'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28'};
+  if(opt.body)h['Content-Type']='application/json';
+  return fetch('https://api.github.com/repos/'+c.repo+path,{method:opt.method||'GET',body:opt.body,headers:h,cache:'no-store',referrerPolicy:'no-referrer'})}
+var RAW='application/vnd.github.raw';
+function b64e(s){var b=new TextEncoder().encode(s),o='';for(var i=0;i<b.length;i+=0x8000)o+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(o)}
+function b64d(s){var bin=atob(s.replace(/\s/g,'')),b=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return new TextDecoder().decode(b)}
+function timeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'))},ms)})])}
+
+/* 本機快取（Cache API；不能用時退回記憶體） */
+var CN='pn-data-v1',mem={};
+function ckey(k){return new URL('__pn/'+k,location.href).href}
+function cget(k){if(!('caches' in window))return Promise.resolve(mem[k]||null);
+  return caches.open(CN).then(function(c){return c.match(ckey(k))}).then(function(r){return r?r.text():null}).catch(function(){return mem[k]||null})}
+function cput(k,v){mem[k]=v;if(!('caches' in window))return Promise.resolve();
+  return caches.open(CN).then(function(c){return c.put(ckey(k),new Response(v,{headers:{'Content-Type':'text/plain;charset=utf-8'}}))}).catch(function(){})}
+
+/* 目錄 */
+var IDX=null,BY={},REMOTE=null;
+function loadIndex(){
+  return api('/contents/notes/index.json',{},RAW).then(function(r){
+    if(r.ok)return r.text().then(function(t){cput('index',t);return {t:t}});
+    return {err:r.status};
+  }).catch(function(){return {err:'net'}}).then(function(o){
+    if(o.t)return o;
+    return cget('index').then(function(t){return t?{t:t,stale:o.err}:o});
+  });
+}
+function errText(e){return e===401?'token 無效或過期，請到「設定」更新':e===403?'token 權限不足':e===404?'找不到資料 repo，或 token 沒有這個 repo 的權限':'目前離線'}
+function marksCount(id){var l=getLocal(id);if(!l)return 0;var n=0;for(var k in l.d)n+=l.d[k].length;return n}
+function renderList(){
+  var list=$('#list'),q=($('#q').value||'').trim().toLowerCase();list.textContent='';if(!IDX)return;
+  IDX.groups.forEach(function(g){
+    var items=g.items.filter(function(it){return !q||(it.id+' '+it.t+' '+(it.zh||'')).toLowerCase().indexOf(q)>=0});
+    if(!items.length)return;
+    var h=document.createElement('h2');h.textContent=g.h;var sm=document.createElement('small');sm.textContent=g.sub||'';h.appendChild(sm);list.appendChild(h);
+    var grid=document.createElement('div');grid.className='grid';
+    items.forEach(function(it){
+      var a=document.createElement('a');a.className='it';a.href='#n/'+encodeURIComponent(it.id);
+      var b=document.createElement('b');b.textContent=it.id;
+      var s=document.createElement('span');s.appendChild(document.createTextNode(it.t));var z=document.createElement('small');z.textContent=it.zh||'';s.appendChild(z);
+      var i=document.createElement('i');var n=marksCount(it.id);
+      if(n)i.textContent='● '+n;else if(!getLocal(it.id)&&REMOTE&&REMOTE[it.id])i.textContent='●';
+      a.appendChild(b);a.appendChild(s);a.appendChild(i);grid.appendChild(a)});
+    list.appendChild(grid)});
+}
+function status(html,isErr){var s=$('#status');s.textContent='';var sp=document.createElement('span');sp.textContent=html;if(isErr)sp.className='err';s.appendChild(sp)}
+function home(){
+  if(!ready()){location.hash='#setup';return}
+  status('載入中…');
+  loadIndex().then(function(o){
+    if(!o.t){status(errText(o.err),true);return}
+    IDX=JSON.parse(o.t);BY={};IDX.groups.forEach(function(g){g.items.forEach(function(it){BY[it.id]=it})});
+    var n=Object.keys(BY).length;document.title=IDX.title||'筆記';$('#bar h1').textContent=IDX.title||'筆記';
+    status(o.stale?n+' 頁 · '+errText(o.stale)+'，顯示上次下載的目錄':n+' 頁',!!o.stale&&o.stale!=='net');
+    renderList();
+    if(!o.stale)api('/contents/marks').then(function(r){return r.ok?r.json():[]}).then(function(a){REMOTE={};(a||[]).forEach(function(f){REMOTE[f.name.replace(/\.json$/,'')]=1});renderList()}).catch(function(){});
+  });
+}
+
+/* 單頁 */
+function loadNote(id){
+  var it=BY[id];if(!it)return Promise.resolve(null);var k='n/'+id;
+  return cget(k).then(function(c){
+    var o=c?JSON.parse(c):null;if(o&&o.h===it.h)return o.html;
+    return api('/contents/notes/'+encodeURIComponent(id)+'.html',{},RAW).then(function(r){
+      if(!r.ok)throw r.status;return r.text()}).then(function(html){cput(k,JSON.stringify({h:it.h,html:html}));return html})
+      .catch(function(){return o?o.html:null});
+  });
+}
+
+/* 標記同步：本機 pn-m-<id> = {d, t, s(已同步)}；遠端 marks/<id>.json = {d, t} */
+function getLocal(id){try{return JSON.parse(LS.get('pn-m-'+id)||'null')}catch(e){return null}}
+function setLocal(id,o){LS.set('pn-m-'+id,JSON.stringify(o))}
+function remote(id){return api('/contents/marks/'+encodeURIComponent(id)+'.json').then(function(r){
+  if(r.status===404)return {d:{},t:0,sha:null};if(!r.ok)throw r.status;
+  return r.json().then(function(j){var o=JSON.parse(b64d(j.content));return {d:o.d||{},t:o.t||0,sha:j.sha}})})}
+function marksFor(id){
+  var l=getLocal(id);
+  return timeout(remote(id),3500).then(function(rm){
+    LS.set('pn-ms-'+id,rm.sha);
+    if(!l||l.s||rm.t>l.t){if(rm.t||!l||l.s){l={d:rm.d,t:rm.t,s:1};setLocal(id,l)}}
+    else push(id);
+    return l.d;
+  }).catch(function(){return l?l.d:{}});
+}
+var busy={};
+function push(id){
+  var l=getLocal(id);if(!l||l.s||busy[id])return Promise.resolve(true);busy[id]=1;showSync('同步中…');
+  var tries=0;
+  function once(){
+    var body={message:'update '+id,content:b64e(JSON.stringify({d:l.d,t:l.t})+'\n')};var sha=LS.get('pn-ms-'+id);if(sha)body.sha=sha;
+    return api('/contents/marks/'+encodeURIComponent(id)+'.json',{method:'PUT',body:JSON.stringify(body)}).then(function(r){
+      if(r.ok)return r.json().then(function(j){LS.set('pn-ms-'+id,j.content.sha);var cur=getLocal(id);if(cur&&cur.t===l.t){cur.s=1;setLocal(id,cur)}return true});
+      if((r.status===409||r.status===422)&&tries++<1)return remote(id).then(function(rm){LS.set('pn-ms-'+id,rm.sha);
+        if(rm.t>l.t){setLocal(id,{d:rm.d,t:rm.t,s:1});return true}return once()});
+      return false;
+    });
+  }
+  return once().catch(function(){return false}).then(function(ok){delete busy[id];showSync(ok?'已同步':'尚未同步，連線後會再試',ok);
+    var cur=getLocal(id);if(ok&&cur&&!cur.s)return push(id);return ok});
+}
+function flush(){if(!ready())return;LS.keys().forEach(function(k){if(k.indexOf('pn-m-')===0){var id=k.slice(5),l=getLocal(id);if(l&&!l.s)push(id)}})}
+var st;function showSync(t,fade){var s=$('#sync');s.textContent=t;s.hidden=false;clearTimeout(st);if(fade)st=setTimeout(function(){s.hidden=true},1500)}
+var timers={};
+function saveMarks(id,d){setLocal(id,{d:d||{},t:Date.now(),s:0});showSync('稍後同步…');clearTimeout(timers[id]);timers[id]=setTimeout(function(){push(id)},1500)}
+
+var view=$('#view'),CUR=null;
+/* 每次換一個新的 iframe，避免 iframe 換內容時多出瀏覽紀錄（返回鍵會卡在 iframe 裡） */
+function setView(html,show){var nf=view.cloneNode(false);if(html!=null)nf.srcdoc=html;else nf.removeAttribute('srcdoc');nf.hidden=!show;view.replaceWith(nf);view=nf}
+function open(id){
+  CUR=id;$('#home').hidden=true;$('#setup').hidden=true;$('#bar').hidden=true;setView('<p style="font:15px sans-serif;padding:20px;color:#888">載入中…</p>',true);
+  var go=IDX?Promise.resolve():loadIndex().then(function(o){if(o.t){IDX=JSON.parse(o.t);IDX.groups.forEach(function(g){g.items.forEach(function(it){BY[it.id]=it})})}});
+  go.then(function(){return Promise.all([loadNote(id),marksFor(id)])}).then(function(r){
+    if(CUR!==id)return;
+    if(!r[0]){setView('<p style="font:15px sans-serif;padding:20px;color:#888">打不開這一頁（可能離線且還沒下載過）。<br>按返回鍵回目錄。</p>',true);return}
+    var it=BY[id];document.title=id+(it?' '+(it.zh||it.t):'');
+    var inj='<script>window.__PN_INIT='+JSON.stringify(r[1]||{}).replace(/</g,'\\u003c')+'<\/script>';
+    setView(r[0].replace('<head>','<head>'+inj),true);
+  });
+}
+addEventListener('message',function(e){
+  if(e.source!==view.contentWindow||!e.data||typeof e.data!=='object')return;var m=e.data;
+  if(m.pn==='save'&&CUR&&m.d&&typeof m.d==='object')saveMarks(CUR,m.d);
+  else if(m.pn==='go'&&typeof m.id==='string'){if(m.id==='index')location.hash='';else if(BY[m.id])location.hash='#n/'+encodeURIComponent(m.id)}
+});
+
+/* 設定 */
+function setup(){
+  CUR=null;setView(null,false);$('#bar').hidden=false;$('#home').hidden=true;$('#setup').hidden=false;
+  var c=cfg();$('#repo').value=c.repo;$('#tok').value=c.token?'••••••••':'';$('#msg').textContent='';$('#back').hidden=!ready();
+}
+$('#tok').addEventListener('focus',function(){if(this.value==='••••••••')this.value=''});
+$('#save').onclick=function(){
+  var repo=$('#repo').value.trim(),tok=$('#tok').value.trim(),msg=$('#msg');
+  if(tok==='••••••••'||!tok)tok=cfg().token;
+  if(!RE.test(repo)){msg.textContent='repo 要寫成 owner/name';return}
+  if(!tok){msg.textContent='請輸入 token';return}
+  msg.textContent='測試中…';
+  api('',{},null,{repo:repo,token:tok}).then(function(r){
+    if(!r.ok){msg.textContent=errText(r.status);return}
+    return r.json().then(function(j){
+      LS.set('pn-repo',repo);LS.set('pn-token',tok);IDX=null;
+      var w=j.permissions&&j.permissions.push;
+      msg.textContent=(j.private?'':'注意：這個 repo 不是私人的。')+(w?'可以讀寫，標記會同步。':'只能讀，標記不會同步（token 需要 Contents 寫入權限）。');
+      setTimeout(function(){location.hash=''},w?600:2500);
+    });
+  }).catch(function(){msg.textContent='連不上 GitHub，請確認網路'});
+};
+$('#back').onclick=function(){location.hash=''};
+$('#gear').onclick=function(){location.hash='#setup'};
+$('#offline').onclick=function(){
+  var b=this,om=$('#omsg');if(!ready())return;b.disabled=true;om.textContent='讀取目錄…';
+  (IDX?Promise.resolve({t:1}):loadIndex().then(function(o){if(o.t){IDX=JSON.parse(o.t);IDX.groups.forEach(function(g){g.items.forEach(function(it){BY[it.id]=it})})}return o}))
+  .then(function(){
+    var ids=Object.keys(BY),i=0,ok=0,bad=0;
+    function next(){if(i>=ids.length)return Promise.resolve();var id=ids[i++];return loadNote(id).then(function(h){h?ok++:bad++;om.textContent='已下載 '+ok+'／'+ids.length+(bad?'，失敗 '+bad:'');return next()})}
+    return Promise.all([next(),next(),next(),next()]);
+  }).then(function(){b.disabled=false;om.textContent+='，完成'});
+};
+$('#wipe').onclick=function(){
+  var unsynced=LS.keys().filter(function(k){var l=k.indexOf('pn-m-')===0&&getLocal(k.slice(5));return l&&!l.s}).length;
+  if(!confirm((unsynced?'有 '+unsynced+' 頁的標記還沒同步，會一起刪掉。\n':'')+'清除這台設備上的 token、repo 設定和下載的內容？'))return;
+  LS.keys().forEach(function(k){if(k.indexOf('pn-')===0)LS.set(k,null)});mem={};IDX=null;BY={};
+  ('caches' in window?caches.delete(CN):Promise.resolve()).then(function(){location.hash='#setup';setup();$('#msg').textContent='已清除'});
+};
+$('#q').addEventListener('input',renderList);
+
+function route(){
+  var h=location.hash;
+  if(h==='#setup')return setup();
+  var m=h.match(/^#n\/(.+)$/);
+  if(m&&ready())return open(decodeURIComponent(m[1]));
+  CUR=null;if(!view.hidden)setView(null,false);$('#setup').hidden=true;$('#bar').hidden=false;$('#home').hidden=false;
+  if(IDX){renderList();document.title=IDX.title||'筆記'}else home();
+}
+addEventListener('hashchange',route);
+addEventListener('online',flush);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')flush()});
+route();flush();
+if('serviceWorker' in navigator&&isSecureContext)navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+</script>
+</body>
+</html>
