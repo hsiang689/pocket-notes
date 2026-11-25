@@ -7,17 +7,15 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
 <title>筆記</title>
-<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#151618" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#151618">
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="筆記">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>
-:root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1f;--mute:#6b6b70;--line:#e4e2dc;--acc:#2f5fb3;--accbg:#e9f0fb;--ok:#1f7a3a;--bad:#b3261e;--dot:#c99700}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151618;--card:#1e2023;--ink:#e8e8e6;--mute:#9a9aa0;--line:#2e3034;--acc:#7fa8f0;--accbg:#22314a;--ok:#6fcf8f;--bad:#f28b82;--dot:#d4b13a}}
-:root[data-theme="dark"]{--bg:#151618;--card:#1e2023;--ink:#e8e8e6;--mute:#9a9aa0;--line:#2e3034;--acc:#7fa8f0;--accbg:#22314a;--ok:#6fcf8f;--bad:#f28b82;--dot:#d4b13a}
+:root{color-scheme:dark;--bg:#151618;--card:#1e2023;--ink:#e8e8e6;--mute:#9a9aa0;--line:#2e3034;--acc:#7fa8f0;--accbg:#22314a;--ok:#6fcf8f;--bad:#f28b82;--dot:#d4b13a}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC","Noto Sans CJK TC",sans-serif}
@@ -25,7 +23,7 @@ header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px 
 header h1{font-size:17px;margin:0 6px 0 0;white-space:nowrap}
 #q{flex:1;min-width:0;font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--acc);border-radius:8px;padding:5px 12px;cursor:pointer;white-space:nowrap}
-button.main{background:var(--acc);border-color:var(--acc);color:#fff}
+button.main{background:var(--acc);border-color:var(--acc);color:var(--bg)}
 button:disabled{opacity:.5;cursor:default}
 main{max-width:1100px;margin:0 auto;padding:12px 16px 60px;padding-bottom:max(60px,env(safe-area-inset-bottom))}
 #status{color:var(--mute);font-size:13px;min-height:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -190,11 +188,11 @@ var view=$('#view'),CUR=null;
 /* 每次換一個新的 iframe，避免 iframe 換內容時多出瀏覽紀錄（返回鍵會卡在 iframe 裡） */
 function setView(html,show){var nf=view.cloneNode(false);if(html!=null)nf.srcdoc=html;else nf.removeAttribute('srcdoc');nf.hidden=!show;view.replaceWith(nf);view=nf}
 function open(id){
-  CUR=id;$('#home').hidden=true;$('#setup').hidden=true;$('#bar').hidden=true;setView('<p style="font:15px sans-serif;padding:20px;color:#888">載入中…</p>',true);
+  CUR=id;$('#home').hidden=true;$('#setup').hidden=true;$('#bar').hidden=true;setView('<body style="background:#151618;margin:0;color-scheme:dark"><p style="font:15px sans-serif;padding:20px;color:#888">載入中…</p>',true);
   var go=IDX?Promise.resolve():loadIndex().then(function(o){if(o.t){IDX=JSON.parse(o.t);IDX.groups.forEach(function(g){g.items.forEach(function(it){BY[it.id]=it})})}});
   go.then(function(){return Promise.all([loadNote(id),marksFor(id)])}).then(function(r){
     if(CUR!==id)return;
-    if(!r[0]){setView('<p style="font:15px sans-serif;padding:20px;color:#888">打不開這一頁（可能離線且還沒下載過）。<br>按返回鍵回目錄。</p>',true);return}
+    if(!r[0]){setView('<body style="background:#151618;margin:0;color-scheme:dark"><p style="font:15px sans-serif;padding:20px;color:#888">打不開這一頁（可能離線且還沒下載過）。<br>按返回鍵回目錄。</p>',true);return}
     var it=BY[id];document.title=id+(it?' '+(it.zh||it.t):'');
     var inj='<script>window.__PN_INIT='+JSON.stringify(r[1]||{}).replace(/</g,'\\u003c')+'<\/script>';
     setView(r[0].replace('<head>','<head>'+inj),true);
